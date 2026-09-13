@@ -18,6 +18,7 @@ There is no manual deployment step.
 * [API (Clever Cloud)](#api-clever-cloud)
   * [Health check](#health-check)
   * [Blocking IP addresses](#blocking-ip-addresses)
+  * [Crawlers](#crawlers)
   * [Logging](#logging)
 * [Website (GitHub Pages)](#website-github-pages)
 * [DNS for specref.org](#dns-for-specreforg)
@@ -76,6 +77,28 @@ therefore trusts that header (Express's `trust proxy` setting and
 without this, it would only ever see the load balancer's own address and
 the list would never match anything.
 
+### Crawlers
+
+The API serves [`robots.txt`](./robots.txt) (the file at the root of the
+repository) at `/robots.txt`. It lets crawlers fetch `/bibrefs`, the full
+dump and the `refs=` lookups alike, and nothing else.
+
+`/bibrefs` has to stay open to crawlers: [ReSpec](https://respec.org/)
+builds the references section of a spec in the browser by calling it, and
+search engines render JavaScript when they index a page while honouring
+this file for the requests the page makes. Blocking it would strip the
+bibliography from every ReSpec draft in their index. Since the full dump is
+served from a cache built at startup, a crawler fetching it costs nothing
+to speak of, and the `ETag` and `Cache-Control` headers on it let
+well-behaved crawlers revalidate with a `304`. Search, reverse lookup and
+metadata are not needed to render anyone's page, so they are off limits.
+
+Every response also carries an `X-Robots-Tag: noindex` header, so that
+nothing the API returns ever shows up as a search result, allowed or not.
+
+Neither does anything against crawlers that don't behave; that is what the
+[IP block list](#blocking-ip-addresses) is for.
+
 ### Logging
 
 The server logs to standard output, one JSON object per line, using
@@ -94,8 +117,10 @@ What gets logged:
   process' memory usage (`memory`, in MB: `rss`, `heapUsed`, `heapTotal`,
   `external`, `arrayBuffers`), then the same memory snapshot once a minute;
 * one line per completed request (`request completed`), at `info` for
-  successes, `warn` for 4xx and `error` for 5xx, with the method, URL,
-  status, duration and response size. Requests to `/health` are not logged;
+  successes and 404s, `warn` for other 4xx and `error` for 5xx, with the
+  method, URL, status, duration and response size. Requests to `/health`,
+  and requests coming from the instance itself (Clever Cloud's monitoring
+  agent polls `/` every minute), are not logged;
 * at `debug`, an extra line when each request comes in (`request received`)
   with the memory usage at that point. If the process dies while handling a
   request, that line is the last thing in the logs and says which request
