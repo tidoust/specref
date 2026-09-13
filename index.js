@@ -33,6 +33,9 @@ app.use(require("cors")());
 app.use(require("body-parser").urlencoded({ extended: true }));
 app.use(require("errorhandler")(errorhandlerOptions));
 
+// Serialized and gzipped once, see lib/full-dump.js.
+var fullDump = require('./lib/full-dump')(bibref.all);
+
 // bibrefs
 app.get('/bibrefs', function (req, res, next) {
     var refs = req.query["refs"];
@@ -42,7 +45,7 @@ app.get('/bibrefs', function (req, res, next) {
         refs = bibref.getRefs(refs.split(","));
         res.status(200).jsonp(refs);
     } else {
-        res.status(200).jsonp(bibref.all);
+        fullDump.send(req, res);
     }
 });
 
