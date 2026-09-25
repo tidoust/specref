@@ -243,24 +243,24 @@
         "aliasOf": "rfc6557"
     },
     "BCP47": {
-		"href": "https://www.rfc-editor.org/info/bcp47",
-		"title": "Tags for Identifying Languages",
-		"authors": [
-		    "Addison Phillips",
-		    "Mark Davis"
-		],
-		"rawDate": "2009-09",
-		"status": "Best Current Practice",
-		"seeAlso": [
-		   "RFC5646",
-		   "RFC4647"
-		],
-		"publisher": "IETF",
-		"obsoletes": [
-		   "RFC1766",
-		   "RFC3066",
-		   "RFC4646"
-		]
+        "href": "https://www.rfc-editor.org/info/bcp47",
+        "title": "Tags for Identifying Languages",
+        "authors": [
+            "Addison Phillips",
+            "Mark Davis"
+        ],
+        "rawDate": "2009-09",
+        "status": "Best Current Practice",
+        "seeAlso": [
+            "RFC5646",
+            "RFC4647"
+        ],
+        "publisher": "IETF",
+        "obsoletes": [
+            "RFC1766",
+            "RFC3066",
+            "RFC4646"
+        ]
     },
     "BERNERS-LEE98": {
         "aliasOf": "RDF-NOT"
@@ -6632,6 +6632,17 @@
         "date": "1998",
         "isoNumber": "ISO 639-2:1998"
     },
+    "iso-639-2023": {
+        "authors": [
+            "ISO/TC 37/SC 2"
+        ],
+        "href": "https://www.iso.org/standard/74575.html",
+        "title": "Code for individual languages and language groups",
+        "publisher": "ISO",
+        "status": "International Standard",
+        "date": "2023",
+        "isoNumber": "ISO 639:2023"
+    },
     "iso-639-3": {
         "aliasOf": "iso-639-3-2007"
     },
@@ -6673,17 +6684,6 @@
         "status": "International Standard",
         "date": "2008",
         "isoNumber": "ISO 639-5:2008"
-    },
-    "iso-639-2023": {
-        "authors": [
-            "ISO/TC 37/SC 2"
-        ],
-        "href": "https://www.iso.org/standard/74575.html",
-        "title": "Code for individual languages and language groups",
-        "publisher": "ISO",
-        "status": "International Standard",
-        "date": "2023",
-        "isoNumber": "ISO 639:2023"
     },
     "json-patch": {
         "aliasOf": "rfc6902"
