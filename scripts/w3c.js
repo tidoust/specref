@@ -182,6 +182,36 @@ async function fetchW3CPages(endpoint, property, embed) {
     return res;
 }
 
+
+/**
+ * Fetch the list of editors and deliverers of the current version of a spec
+ * unless we already retrieved that information. The editors and deliverers
+ * properties get set on the provided version object.
+ *
+ * The version parameter is a version object as returned by the W3C API. The
+ * shortname parameter is for logging purpose.
+ */
+async function fetchSpecVersionEditorsIfNeeded(shortname, version) {
+    if (version.editors || version.deliverers) {
+        return;
+    }
+    const key = makeKey(version);
+    version.editors = await fetchW3CPages(version._links.editors.href, 'editors', false);
+    if (!version.editors) {
+        console.error(`- ${shortname} (${key}): could not retrieve the list of editors from the W3C API`);
+    }
+    version.deliverers = await fetchW3CPages(version._links.deliverers.href, 'deliverers', true);
+    if (version.deliverers) {
+        // Note: the W3C API associates very old specs with a fake
+        // group named "unknownwg".
+        version.deliverers = version.deliverers.filter(g =>
+            g.shortname !== 'unknownwg');
+    }
+    else {
+        console.error(`- ${shortname} (${key}): could not retrieve the list of deliverers from the W3C API`);
+    }
+}
+
 /**
  * Return true if the entry in Specref contains outdated info about the spec
  * compared to the W3C API.
@@ -300,24 +330,11 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
             delete currVersion.aliasOf;
         }
 
-        if (key > fromDate || version === latestVersion) {
-            // Recent (or last) version, fetch editors and deliverers
+        if (key > fromDate) {
+            // Recent version, fetch editors and deliverers
             // (If that yields an error, we will just preserve whatever info
             // already exists in Specref until next time the script runs)
-            version.editors = await fetchW3CPages(version._links.editors.href, 'editors', false);
-            if (!version.editors) {
-                console.error(`- ${w3cSpec.shortname} (${key}): could not retrieve the list of editors from the W3C API`);
-            }
-            version.deliverers = await fetchW3CPages(version._links.deliverers.href, 'deliverers', true);
-            if (version.deliverers) {
-                // Note: the W3C API associates very old specs with a fake
-                // group named "unknownwg".
-                version.deliverers = version.deliverers.filter(g =>
-                    g.shortname !== 'unknownwg');
-            }
-            else {
-                console.error(`- ${w3cSpec.shortname} (${key}): could not retrieve the list of deliverers from the W3C API`);
-            }
+            await fetchSpecVersionEditorsIfNeeded(w3cSpec.shortname, version);
         }
         if (version.editors?.length > 0) {
             currVersion.authors = version.editors
@@ -353,6 +370,9 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
     }
 
     // Complete base info with the info from the latest version
+    // But first, let's make sure we have the list of editors and deliverers
+    // of the latest version.
+    await fetchSpecVersionEditorsIfNeeded(w3cSpec.shortname, latestVersion);
     curr.rawDate = latestVersion.date;
     curr.status = getStatus(latestVersion, versions).abbr;
     if (latestVersion.editors?.length > 0) {
