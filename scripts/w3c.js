@@ -271,25 +271,6 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
         const w3cStatus = getStatus(version, versions);
         version.rawDate = version.date;
         const key = makeKey(version);
-        if (key > fromDate || version === latestVersion) {
-            // Recent (or last) version, fetch editors and deliverers
-            // (If that yields an error, we will just preserve whatever info
-            // already exists in Specref until next time the script runs)
-            version.editors = await fetchW3CPages(version._links.editors.href, 'editors', false);
-            if (!version.editors) {
-                console.error(`- ${w3cSpec.shortname} (${key}): could not retrieve the list of editors from the W3C API`);
-            }
-            version.deliverers = await fetchW3CPages(version._links.deliverers.href, 'deliverers', true);
-            if (version.deliverers) {
-                // Note: the W3C API associates very old specs with a fake
-                // group named "unknownwg".
-                version.deliverers = version.deliverers.filter(g =>
-                    g.shortname !== 'unknownwg');
-            }
-            else {
-                console.error(`- ${w3cSpec.shortname} (${key}): could not retrieve the list of deliverers from the W3C API`);
-            }
-        }
         if (!curr.versions) {
             curr.versions = {};
         }
@@ -317,6 +298,26 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
             console.log(`- ${w3cSpec.shortname} (${key}): drop alias to ${currVersion.aliasOf} in Specref`);
             aliasesToInvert[currVersion.aliasOf] = w3cSpec.shortname + '-' + key;
             delete currVersion.aliasOf;
+        }
+
+        if (key > fromDate || version === latestVersion) {
+            // Recent (or last) version, fetch editors and deliverers
+            // (If that yields an error, we will just preserve whatever info
+            // already exists in Specref until next time the script runs)
+            version.editors = await fetchW3CPages(version._links.editors.href, 'editors', false);
+            if (!version.editors) {
+                console.error(`- ${w3cSpec.shortname} (${key}): could not retrieve the list of editors from the W3C API`);
+            }
+            version.deliverers = await fetchW3CPages(version._links.deliverers.href, 'deliverers', true);
+            if (version.deliverers) {
+                // Note: the W3C API associates very old specs with a fake
+                // group named "unknownwg".
+                version.deliverers = version.deliverers.filter(g =>
+                    g.shortname !== 'unknownwg');
+            }
+            else {
+                console.error(`- ${w3cSpec.shortname} (${key}): could not retrieve the list of deliverers from the W3C API`);
+            }
         }
         if (version.editors?.length > 0) {
             currVersion.authors = version.editors
