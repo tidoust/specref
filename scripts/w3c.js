@@ -92,8 +92,11 @@ function getStatus(version, versions) {
                 return STATUSES[currVersion.status];
             }
             const match = currVersion.uri.match(reStatus);
-            if (match && Object.values(STATUSES).includes(match[1])) {
-                return match[1];
+            if (match) {
+                const status = Object.values(STATUSES).find(s => s.abbr === match[1]);
+                if (status) {
+                    return status;
+                }
             }
         }
 
