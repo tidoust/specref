@@ -32,31 +32,40 @@ let requestsToW3CApi = 0;
 /**
  * Specref uses abbreviations for W3C statuses.
  *
+ * Also, many W3C publications now take place automatically whenever an update
+ * is made to the spec. This creates a large set of "artificial" draft versions
+ * (~500 for WebGPU as of September 2026) that no one should need to reference.
+ * The logic preserves the versions that Specref already knew about but now
+ * skips intermediary statuses.
+ *
  * TODO: It would probably be better to use longer forms throughout. That would
  * require updating all statuses in refs/w3c.json at once, and making sure that
  * consumers are aware of the change first...
  *
- * Note that the W3C API considers that the status of a Retired spec is
- * "Retired", while Specref records that information on the side and uses the
- * status of the spec before it got retired.
+ * Notes:
+ * - The W3C API considers that the status of a Retired spec is "Retired",
+ * while Specref records that information on the side and uses the status of
+ * the spec before it got retired.
+ * - Some of the statuses only exist in case the script is run on old specs.
+ * For example, specs are no longer published as a "Last Call Working Draft".
  */
 const STATUSES = {
-    'First Public Working Draft': 'FPWD',
-    'Working Draft': 'WD',
-    'Last Call Working Draft': 'LCWD',
-    'Candidate Recommendation': 'CR',
-    'Candidate Recommendation Draft': 'CRD',
-    'Candidate Recommendation Snapshot': 'CR',
-    'Proposed Recommendation': 'PR',
-    'Proposed Edited Recommendation': 'PER',
-    'Recommendation': 'REC',
-    'Draft Note': 'DNOTE',
-    'Note': 'NOTE',
-    'Draft Registry': 'DRY',
-    'Candidate Registry Draft': 'CRYD',
-    'Candidate Registry': 'CRY',
-    'Registry': 'RY',
-    'Statement': 'STMT'
+    'First Public Working Draft': { abbr: 'FPWD' },
+    'Working Draft': { abbr: 'WD', skip: true },
+    'Last Call Working Draft': { abbr: 'LCWD' },
+    'Candidate Recommendation': { abbr: 'CR' },
+    'Candidate Recommendation Draft': { abbr: 'CRD', skip: true },
+    'Candidate Recommendation Snapshot': { abbr: 'CR' },
+    'Proposed Recommendation': { abbr: 'PR' },
+    'Proposed Edited Recommendation': { abbr: 'PER', skip: true },
+    'Recommendation': { abbr: 'REC' },
+    'Draft Note': { abbr: 'DNOTE', skip: true },
+    'Note': { abbr: 'NOTE' },
+    'Draft Registry': { abbr: 'DRY', skip: true },
+    'Candidate Registry Draft': { abbr: 'CRYD', skip: true },
+    'Candidate Registry': { abbr: 'CRY' },
+    'Registry': { abbr: 'RY' },
+    'Statement': { abbr: 'STMT' }
 };
 function getStatus(version, versions) {
     if (version.status in STATUSES) {
@@ -256,6 +265,7 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
 
     const latestVersion = versions[versions.length - 1];
     for (const version of versions) {
+        const w3cStatus = getStatus(version, versions);
         version.rawDate = version.date;
         const key = makeKey(version);
         if (key > fromDate || version === latestVersion) {
@@ -282,7 +292,18 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
         }
         let currVersion = curr.versions[key];
         if (!currVersion) {
-            // Unknown version in Specref, let's add it
+            // Unknown version in Specref, let's add it if either:
+            // 1. Specref does not have any dated version for the spec. This
+            // allows to capture the first publication date, which could
+            // perhaps be of interest to consumers.
+            // 2. The spec status is one that shouldn't be skipped, such as
+            // Candidate Recommendation Snapshot or Recommendation.
+            // Note: Recommendations may also be updated daily with candidate
+            // amendments but there is no good way to distinguish between a
+            // "true" Recommendation and one with amendments.
+            if (w3cStatus.skip && Object.keys(curr.versions).length > 0) {
+                continue;
+            }
             curr.versions[key] = {};
             currVersion = curr.versions[key];
         }
@@ -301,7 +322,7 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
         currVersion.href = version.uri;
         currVersion.title = version.title;
         currVersion.rawDate = version.rawDate;
-        currVersion.status = getStatus(version, versions);
+        currVersion.status = w3cStatus.abbr;
         currVersion.publisher = "W3C";
         if (version.deliverers?.length > 0) {
             // Note: the W3C API associates very old specs with a fake group
@@ -329,7 +350,7 @@ async function updateSpecrefFromW3CApi(curr, w3cSpec, fromDate) {
 
     // Complete base info with the info from the latest version
     curr.rawDate = latestVersion.date;
-    curr.status = getStatus(latestVersion, versions);
+    curr.status = getStatus(latestVersion, versions).abbr;
     if (latestVersion.editors?.length > 0) {
         curr.authors = latestVersion.editors
             .map(editor => editor.title);
